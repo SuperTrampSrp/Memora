@@ -1,12 +1,16 @@
 import { create } from "zustand";
 import {
-    createTask,
-    deleteTask,
-    getAllTasks,
-    getTasksDueToday,
-    toggleTask,
+  createTask,
+  deleteTask,
+  getAllTasks,
+  getTasksDueToday,
+  toggleTask,
 } from "../database/tasks";
 import { Task } from "../types";
+import {
+  cancelTaskReminder,
+  scheduleTaskReminder,
+} from "../utils/notifications";
 
 interface TaskStore {
   tasks: Task[];
@@ -28,8 +32,9 @@ export const useTaskStore = create<TaskStore>((set) => ({
     });
   },
 
-  addTask: (task) => {
-    createTask(task);
+  addTask: async (task) => {
+    const created = createTask(task);
+    await scheduleTaskReminder(created);
     set({
       tasks: getAllTasks(),
       todayTasks: getTasksDueToday(),
@@ -44,7 +49,8 @@ export const useTaskStore = create<TaskStore>((set) => ({
     });
   },
 
-  removeTask: (id) => {
+  removeTask: async (id) => {
+    await cancelTaskReminder(id);
     deleteTask(id);
     set({
       tasks: getAllTasks(),

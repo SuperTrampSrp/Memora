@@ -1,11 +1,15 @@
 import { create } from "zustand";
 import {
-    createSocialEvent,
-    deleteSocialEvent,
-    getAllSocialEvents,
-    getUpcomingSocialEvents,
+  createSocialEvent,
+  deleteSocialEvent,
+  getAllSocialEvents,
+  getUpcomingSocialEvents,
 } from "../database/socialEvents";
 import { SocialEvent } from "../types";
+import {
+  cancelSocialEventReminder,
+  scheduleSocialEventReminder,
+} from "../utils/notifications";
 
 interface SocialEventStore {
   events: SocialEvent[];
@@ -28,8 +32,9 @@ export const useSocialEventStore = create<SocialEventStore>((set) => ({
     });
   },
 
-  addEvent: (event) => {
-    createSocialEvent(event);
+  addEvent: async (event) => {
+    const created = createSocialEvent(event);
+    await scheduleSocialEventReminder(created);
     set({
       events: getAllSocialEvents(),
       upcomingEvents: getUpcomingSocialEvents(30) as (SocialEvent & {
@@ -38,7 +43,8 @@ export const useSocialEventStore = create<SocialEventStore>((set) => ({
     });
   },
 
-  removeEvent: (id) => {
+  removeEvent: async (id) => {
+    await cancelSocialEventReminder(id);
     deleteSocialEvent(id);
     set({
       events: getAllSocialEvents(),

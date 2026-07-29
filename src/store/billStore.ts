@@ -1,12 +1,16 @@
 import { create } from "zustand";
 import {
-    createBill,
-    deleteBill,
-    getAllBills,
-    getDueSoonBills,
-    markBillPaid,
+  createBill,
+  deleteBill,
+  getAllBills,
+  getDueSoonBills,
+  markBillPaid,
 } from "../database/bills";
 import { Bill } from "../types";
+import {
+  cancelBillReminder,
+  scheduleBillReminder,
+} from "../utils/notifications";
 
 interface BillStore {
   bills: Bill[];
@@ -28,23 +32,29 @@ export const useBillStore = create<BillStore>((set) => ({
     });
   },
 
-  addBill: (bill) => {
-    createBill(bill);
+  addBill: async (bill) => {
+    const created = createBill(bill);
+    await scheduleBillReminder(created);
     set({
       bills: getAllBills(),
       dueSoonBills: getDueSoonBills(7),
     });
   },
 
-  payBill: (id) => {
+  payBill: async (id) => {
+    await cancelBillReminder(id);
     markBillPaid(id);
+    const updatedBills = getAllBills();
+    const paid = updatedBills.find((b) => b.id === id);
+    if (paid) await scheduleBillReminder(paid);
     set({
-      bills: getAllBills(),
+      bills: updatedBills,
       dueSoonBills: getDueSoonBills(7),
     });
   },
 
-  removeBill: (id) => {
+  removeBill: async (id) => {
+    await cancelBillReminder(id);
     deleteBill(id);
     set({
       bills: getAllBills(),

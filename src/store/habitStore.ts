@@ -1,11 +1,15 @@
 import { create } from "zustand";
 import {
-    createHabit,
-    deleteHabit,
-    getAllHabits,
-    toggleHabitComplete,
+  createHabit,
+  deleteHabit,
+  getAllHabits,
+  toggleHabitComplete,
 } from "../database/habits";
 import { Habit } from "../types";
+import {
+  cancelHabitReminder,
+  scheduleHabitReminder,
+} from "../utils/notifications";
 
 interface HabitStore {
   habits: Habit[];
@@ -24,25 +28,23 @@ export const useHabitStore = create<HabitStore>((set) => ({
   habits: [],
 
   loadHabits: () => {
-    const habits = getAllHabits();
-    set({ habits });
+    set({ habits: getAllHabits() });
   },
 
-  addHabit: (habit) => {
-    createHabit(habit);
-    const habits = getAllHabits();
-    set({ habits });
+  addHabit: async (habit) => {
+    const created = createHabit(habit);
+    await scheduleHabitReminder(created);
+    set({ habits: getAllHabits() });
   },
 
   toggleHabit: (id) => {
     toggleHabitComplete(id);
-    const habits = getAllHabits();
-    set({ habits });
+    set({ habits: getAllHabits() });
   },
 
-  removeHabit: (id) => {
+  removeHabit: async (id) => {
+    await cancelHabitReminder(id);
     deleteHabit(id);
-    const habits = getAllHabits();
-    set({ habits });
+    set({ habits: getAllHabits() });
   },
 }));
